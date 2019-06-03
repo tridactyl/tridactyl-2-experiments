@@ -1,7 +1,5 @@
 import { BGRPCExports } from "~background"
 
-import * as R from "ramda"
-
 export type Sender = browser.runtime.MessageSender
 
 export type RPCMsg = {
