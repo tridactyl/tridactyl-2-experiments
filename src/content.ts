@@ -146,7 +146,24 @@ const models: Models = flyd.scan(
     updates
 )
 
-const actions = createActions(updates)
+let actions = createActions(updates)
+
+// Debugging: Print info about each action
+const voidfn = () => {}
+export function nestingactionproxy(target) {
+    return new Proxy(voidfn, {
+        get: (_, name: string) => nestingactionproxy(target[name]),
+        apply: (_, __, args: any[]) => {
+            const response = target(...args)
+            response._meta = {}
+            response._meta.fn = target
+            response._meta.args = args
+            return response
+        },
+    }) as any
+}
+actions = nestingactionproxy(actions)
+updates.map((act: any) => console.log(act._meta.fn, act._meta.args))
 
 export type ContentActions = typeof actions
 
