@@ -203,10 +203,7 @@ addEventListener(
 
 // RPC
 
-// TODO:
-// Combine RPC funcs from other files (namespaced)
-
-import * as rpc from "~rpc"
+import * as rpc from "~/rpc"
 
 export const rpcexports = {
     stat: async () => models().mode.current,
