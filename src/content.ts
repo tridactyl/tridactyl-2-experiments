@@ -1,8 +1,8 @@
 import produce from "immer"
 import flyd from "flyd"
 import m from "mithril"
-import TriInput from "~/components/input"
-import TriStatus from "~/components/status"
+
+import App from "~/components/app"
 
 import { KeyseqState, keyseqActions, KeyseqInitial } from "~/keyseq/state"
 
@@ -33,8 +33,6 @@ export type ContentState = Readonly<{
     }
     uiframe: {
         visible: boolean
-        mounted: boolean
-        root?: HTMLElement
         commandline: {
             visible: boolean
             history: string[]
@@ -56,7 +54,6 @@ const initial: ContentState = {
     },
     uiframe: {
         visible: false,
-        mounted: false,
         commandline: {
             visible: false,
             history: [],
@@ -99,22 +96,6 @@ const createActions = (updates: Updates) => ({
         oninput: (val: string) =>
             mutator(({ uiframe }) => {
                 uiframe.commandline.text = val
-            }),
-        mount: () =>
-            mutator(model => {
-                const root = document.createElementNS(
-                    "http://www.w3.org/1999/xhtml",
-                    "div"
-                )
-                document.documentElement.appendChild(root)
-                model.uiframe.mounted = true
-                model.uiframe.root = root
-            }),
-        unmount: () =>
-            mutator(({ uiframe }) => {
-                uiframe.root.remove()
-                uiframe.mounted = false
-                uiframe.root = undefined
             }),
         setvisible: (vis: boolean) =>
             mutator(({ uiframe }) => {
@@ -172,22 +153,31 @@ export type ContentActions = typeof actions
 // models.map(m => console.log(m.uiframe, m.mode, m.keyseq))
 // models.map(m => console.log(m.keyseq.keys))
 
+// HTML views
+
 /**
- * Render all of our visible UI if it should be visible.
+ * Render all of our visible UI.
  *
- * If it shouldn't be visible, completely remove it.
+ * The App component returns an empty vnode if it should not be displayed. This
+ * lets mithril manage the dom nodes however it wants to.
+ *
+ * If it should be displayed, it renders into a shadow root attached to a newly
+ * created element on the documentElement that is managed by the 'Shadow' component.
+ *
+ * The App should not be m.mount'ed because the Shadow does not have an onupdate hook.
  */
-models.map(model => {
-    if (model.uiframe.visible) {
-        if (!model.uiframe.mounted) {
-            dispatch(actions.uiframe.mount())
-            return
-        }
-        m.render(model.uiframe.root, m(App, { model: models(), actions }))
-    } else if (model.uiframe.mounted) {
-        dispatch(actions.uiframe.unmount())
-    }
-})
+const fakeroot = document.createElement('div')
+
+models.map(model =>
+    m.render(fakeroot, [
+        // model.uiframe.visible && m(Shadow, m(Iframe, [m('pre', 'hi mum')]))
+        m(App, {model, actions}),
+    ]))
+
+// Debug tracer
+
+// import * as meiosisTracer from "meiosis-tracer"
+// meiosisTracer({ selector: "#tri-tracer", streams: [models] })
 
 // Listeners
 
@@ -236,60 +226,7 @@ Object.assign(window as any, {
     rpc,
 })
 
-// Iframe experiments
-
-import Iframe from "~/components/iframe"
-
 export type ContentAttrs = {
     model: ContentState
     actions: ContentActions
-}
-
-export interface Component<Attrs = ContentAttrs> {
-    view: (vnode: m.Vnode<Attrs>) => m.Children | null | void
-}
-
-const App: m.Component<ContentAttrs> = {
-    view: ({ attrs: { model, actions } }) =>
-        model.uiframe.visible &&
-        m(
-            Iframe,
-            {
-                src: browser.runtime.getURL("blank.html"),
-                // TODO: Use the component lifecycle events oncreate and
-                // onupdate to find the offsetHeight of the iframe and adjust
-                // height. Avoid loops.
-                style: {
-                    position: "fixed",
-                    bottom: 0,
-                    border: 0,
-                    padding: 0,
-                    margin: 0,
-                    width: "100%",
-                },
-            },
-            [
-                m("head", [
-                    m("title", "Tridactyl Commandline"),
-                    [
-                        "static/css/commandline.css",
-                        "static/themes/default/default.css",
-                    ].map(url =>
-                        m("link", {
-                            href: browser.runtime.getURL(url),
-                            rel: "stylesheet",
-                        })
-                    ),
-                ]),
-                m("body", [
-                    // Can't stringify the whole model, probably because
-                    // stringify does some magic and model contains a reference
-                    // to the div that gets removed.
-                    // m('pre', JSON.stringify(model)),
-                    m("pre", JSON.stringify(model.uiframe.commandline)),
-                    m(TriInput, { model, actions }),
-                    m(TriStatus, { model, actions }),
-                ]),
-            ]
-        ),
 }
