@@ -88,6 +88,14 @@ export type Mutator = (model: ContentState) => void
 export const mutator = (fn: Mutator) => (model: ContentState) =>
     produce(model, fn)
 
+// Imagine these are bigger and maybe imported from different files.
+const modeActions = {
+    change_mode: (newmode: ModeType) =>
+        mutator(({ mode }) => {
+            mode.current = newmode
+        }),
+}
+
 const createActions = (updates: Updates) => ({
     // : { [key: string]: Actions } => ({
     mode: modeActions,
@@ -103,14 +111,6 @@ const createActions = (updates: Updates) => ({
             }),
     },
 })
-
-// Imagine these are bigger and maybe imported from different files.
-const modeActions = {
-    change_mode: (newmode: ModeType) =>
-        mutator(({ mode }) => {
-            mode.current = newmode
-        }),
-}
 
 // If we ever need state/actions that require a dynamic key in the state object.
 // const moveableActions = (updates: Updates, id: keyof State) => ({
@@ -131,7 +131,7 @@ let actions = createActions(updates)
 
 // Debugging: Print info about each action
 const voidfn = () => {}
-export function nestingactionproxy(target) {
+function nestingactionproxy(target) {
     return new Proxy(voidfn, {
         get: (_, name: string) => nestingactionproxy(target[name]),
         apply: (_, __, args: any[]) => {
@@ -164,20 +164,12 @@ export type ContentActions = typeof actions
  * If it should be displayed, it renders into a shadow root attached to a newly
  * created element on the documentElement that is managed by the 'Shadow' component.
  *
- * The App should not be m.mount'ed because the Shadow does not have an onupdate hook.
+ * The App should not be m.mount'ed because there's no need and the Shadow does
+ * not have an onupdate hook.
  */
-const fakeroot = document.createElement('div')
+const fakeroot = document.createElement("div")
 
-models.map(model =>
-    m.render(fakeroot, [
-        // model.uiframe.visible && m(Shadow, m(Iframe, [m('pre', 'hi mum')]))
-        m(App, {model, actions}),
-    ]))
-
-// Debug tracer
-
-// import * as meiosisTracer from "meiosis-tracer"
-// meiosisTracer({ selector: "#tri-tracer", streams: [models] })
+models.map(model => m.render(fakeroot, [m(App, { model, actions })]))
 
 // Listeners
 
