@@ -1,4 +1,4 @@
-import * as m from "mithril"
+import m from "mithril"
 import { ContentAttrs } from "~/content"
 
 const TriStatus: m.Component<ContentAttrs> = {

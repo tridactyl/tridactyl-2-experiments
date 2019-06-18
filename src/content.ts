@@ -1,6 +1,6 @@
-import * as flyd from "flyd"
 import produce from "immer"
-import * as m from "mithril"
+import flyd from "flyd"
+import m from "mithril"
 import TriInput from "~/components/input"
 import TriStatus from "~/components/status"
 
